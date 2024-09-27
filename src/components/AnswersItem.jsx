@@ -1,5 +1,6 @@
 // Components don't need to be separeted into individual files
 // Here we have a smaller component that helps compose the AnswersItem below
+import PropTypes from "prop-types"
 
 const answersSet = {
   swimming: "Swimming",
@@ -43,4 +44,13 @@ export default function AnswersItem({
       </article>
     </li>
   );
+}
+
+AnswersItem.propTypes = {
+  answerItem: PropTypes.shape({
+    username: PropTypes.string,
+    colour: PropTypes.string,
+    timeSpent: PropTypes.array,
+    review: PropTypes.string
+  })
 }
