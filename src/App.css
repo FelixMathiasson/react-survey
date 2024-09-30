@@ -96,6 +96,15 @@ h2 {
   margin: 0.5rem;
 }
 
+.edit-btn {
+  margin-left: 120px;
+}
+
+.delete-btn {
+  margin-left: 10px;
+  /* background-color: rgba(255, 0, 0, 0.459); */
+}
+
 .form {
   width: 80%;
   margin: 3rem auto;

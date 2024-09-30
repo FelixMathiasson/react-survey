@@ -1,64 +1,124 @@
-import { useState } from "react";
-import AnswersList from "./AnswersList";
+import { useState , useEffect} from "react"
+import AnswersList from "./AnswersList"
+import axios from "axios"
+
+const API_URL = "http://localhost:3001/answersList"
 
 function Survey() {
 
   
   const starting = {
-    timeSpend: [],
+    timeSpent: [],
     color: 0,
     consistency: 0,
     logo: 0,
     username: "",
     review: "",
     email: "",
-  };
+  }
 
 
-  const [open, setOpen] = useState(false); //Ignore this state
-  const [answersList, setAnswersList] = useState([]);
-  const [surveryData, setSurveryData] = useState(starting);
+  const [open, setOpen] = useState(false) //Ignore this state
+  const [answersList, setAnswersList] = useState([])
+  const [surveyData, setSurveyData] = useState(starting)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editIndex, setEditIndex] = useState(null)
 
-  const RenderAnswers = () => {
-    if(answersList.length > 0 ) {
-      return <AnswersList answersList={answersList} />
+  useEffect(() => {
+    FindAnswers()
+  }, [])
+
+
+  const FindAnswers = async () => {
+    try {
+      const res = await axios.get(API_URL)
+      setAnswersList(res.data)
+    } catch (err) {
+      console.error("ERROR! Could not find answers from server", err)
     }
   }
-  
-  const submission = (e) => {
-    answersList.push(surveryData)
-    setAnswersList(answersList)
-    setSurveryData(starting)
-    e.preventDefault()
+
+  const newId = () => {
+    let id = 0
+    let found = false
+    while(!found) {
+      found = true
+      for(let i = 0; i < answersList.length; i++) {
+        if (answersList[i].id === `${id}`) {
+          found = false
+          id++
+          break
+        }
+      }
+    }
+    return `${id}`
   }
+
+
+  const submission = async (e) => {
+    e.preventDefault()
+    if(isEditing) {
+      try {
+        const id = answersList[editIndex].id
+        await axios.put(`${API_URL}/${id}`, surveyData)
+        setAnswersList(answersList.map((answer, index) =>
+          index === editIndex ? surveyData : answer))
+        setIsEditing(false)
+        setEditIndex(null)
+      } catch (err) {
+    console.error("ERROR! Could not update answer:", err)
+    } 
+  } else {
+      try {
+        surveyData.id = newId()
+        const res = await axios.post(API_URL, surveyData)
+        setAnswersList([...answersList, res.data]) 
+      } catch (err) {
+        console.error("ERROR! Could not save answer:", err)
+      }
+    }
+  setSurveyData(starting) 
+}
   
   const onChange = (e) => {
-    let arr = surveryData.timeSpend
-    if(e.target.name === 'timeSpend') {
+    let arr = surveyData.timeSpent
+    if(e.target.name === 'timeSpent') {
       if(e.target.checked) {
         arr.push(e.target.value)
       } else {
         arr.splice(arr.indexOf(e.target.value), 1)
       }
-      console.log(arr)
-      setSurveryData({...surveryData, [e.target.name]: arr})
+      setSurveyData({...surveyData, [e.target.name]: arr})
     } else {
-      setSurveryData({...surveryData, [e.target.name]: e.target.value})
+      setSurveyData({...surveyData, [e.target.name]: e.target.value})
+    }
+  }
+
+  const onDelete = async (index) => {
+    const answerId = answersList[index].id
+    try {
+      await axios.delete(`${API_URL}/${answerId}`)
+      const updatedAnswers = answersList.filter((_, i) => i !== index)
+      setAnswersList(updatedAnswers)
+    } catch (err) {
+      console.error("ERROR! could not delete answer:", err)
     }
   }
   
-  
-  
-  
-  
+  const onEdit = (index) => {
+    setSurveyData(answersList[index])
+    setIsEditing(true)
+    setEditIndex(index)
+  }
   
   return (
     <main className="survey">
-      <section className={`survey_list ${open ? "open" : ""}`}>
+      <section className={`survey__list ${open ? "open" : ""}`}>
         <h2>Answers list</h2>
-        <RenderAnswers />
+        <AnswersList answersList={answersList} onEdit={onEdit} onDelete={onDelete} />
       </section>
-      <section className="survey_form">{
+      <section className="survey__form">{
+        // eslint-disable-next-line react/no-unknown-property
         <form onSubmission={submission} className='form'>
           <h2>Tell us what you think about your rubber duck!</h2>
           <div className = 'form__group'>
@@ -70,8 +130,8 @@ function Survey() {
                     id = '1'
                     type = 'checkbox'
                     value = 'blue'
-                    name = 'timeSpend'
-                    checked = {surveryData.timeSpend.includes('blue')}
+                    name = 'timeSpent'
+                    checked = {surveyData.timeSpent.includes('blue')}
                     onChange={(e) => onChange(e)}
                   />
                   It is Blue!
@@ -83,8 +143,8 @@ function Survey() {
                     id = '2'
                     type = 'checkbox'
                     value = 'quacks'
-                    name = 'timeSpend'
-                    checked = {surveryData.timeSpend.includes('quacks')}
+                    name = 'timeSpent'
+                    checked = {surveyData.timeSpent.includes('quacks')}
                     onChange={(e) => onChange(e)}
                   />
                   It quacks!
@@ -96,8 +156,8 @@ function Survey() {
                     id = '3'
                     type = 'checkbox'
                     value = 'logo'
-                    name = 'timeSpend'
-                    checked = {surveryData.timeSpend.includes('logo')}
+                    name = 'timeSpent'
+                    checked = {surveyData.timeSpent.includes('logo')}
                     onChange={(e) => onChange(e)}
                   />
                   It has a logo!
@@ -109,8 +169,8 @@ function Survey() {
                     id = '4'
                     type = 'checkbox'
                     value = 'huge'
-                    name = 'timeSpend'
-                    checked = {surveryData.timeSpend.includes('huge')}
+                    name = 'timeSpent'
+                    checked = {surveyData.timeSpent.includes('huge')}
                     onChange={(e) => onChange(e)}
                   />
                   It is huge!
@@ -118,7 +178,7 @@ function Survey() {
               </li>
             </ul>
           </div>
-          <div className = 'survey_list radio'>
+          <div className = 'form__group radio'>
             <h3>How do you rate your rubber duck color?</h3>
             <ul>
               <li>
@@ -127,7 +187,7 @@ function Survey() {
                   type = 'radio'
                   value = '1'
                   name = 'color'
-                  checked = {surveryData.color === '1'}
+                  checked = {surveyData.color === '1'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor = 'color-one'>1</label>
@@ -138,7 +198,7 @@ function Survey() {
                   type = 'radio'
                   value = '2'
                   name = 'color'
-                  checked = {surveryData.color === '2'}
+                  checked = {surveyData.color === '2'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor='color-two'>2</label>
@@ -149,7 +209,7 @@ function Survey() {
                   type = 'radio'
                   value = '3'
                   name = 'color'
-                  checked = {surveryData.color === '3'}
+                  checked = {surveyData.color === '3'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor='color-three'>3</label>
@@ -160,14 +220,14 @@ function Survey() {
                   type = 'radio'
                   value = '4'
                   name = 'color'
-                  checked = {surveryData.color === '4'}
+                  checked = {surveyData.color === '4'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor='color-four'>4</label>
               </li>
             </ul>
           </div>
-          <div className = 'survey_list radio'>
+          <div className = 'form__group radio'>
             <h3>How do you rate your rubber duck consistency?</h3>
             <ul>
               <li>
@@ -176,7 +236,7 @@ function Survey() {
                   type = 'radio'
                   value = '1'
                   name = 'consistency'
-                  checked = {surveryData.consistency === '1'}
+                  checked = {surveyData.consistency === '1'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="consistency-one">1</label>
@@ -187,7 +247,7 @@ function Survey() {
                   type = 'radio'
                   value = '2'
                   name = 'consistency'
-                  checked = {surveryData.consistency === '2'}
+                  checked = {surveyData.consistency === '2'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="consistency-two">2</label>
@@ -198,7 +258,7 @@ function Survey() {
                   type = 'radio'
                   value = '3'
                   name = 'consistency'
-                  checked = {surveryData.consistency === '3'}
+                  checked = {surveyData.consistency === '3'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="consistency-three">3</label>
@@ -209,14 +269,14 @@ function Survey() {
                   type = 'radio'
                   value = '4'
                   name = 'consistency'
-                  checked = {surveryData.consistency === '4'}
+                  checked = {surveyData.consistency === '4'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="consistency-four">4</label>
               </li>
             </ul>
           </div>
-          <div className = 'survey_list radio'>
+          <div className = 'form__group radio'>
             <h3>How do you rate your rubber duck logo?</h3>
             <ul>
               <li>
@@ -225,7 +285,7 @@ function Survey() {
                   type = 'radio'
                   value = '1'
                   name = 'logo'
-                  checked = {surveryData.logo === '1'}
+                  checked = {surveyData.logo === '1'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="logo-one">1</label>
@@ -236,7 +296,7 @@ function Survey() {
                   type = 'radio'
                   value = '2'
                   name = 'logo'
-                  checked = {surveryData.logo === '2'}
+                  checked = {surveyData.logo === '2'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="logo-two">2</label>
@@ -247,7 +307,7 @@ function Survey() {
                   type = 'radio'
                   value = '3'
                   name = 'logo'
-                  checked = {surveryData.logo === '3'}
+                  checked = {surveyData.logo === '3'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="logo-three">3</label>
@@ -258,7 +318,7 @@ function Survey() {
                   type = 'radio'
                   value = '4'
                   name = 'logo'
-                  checked = {surveryData.logo === '4'}
+                  checked = {surveyData.logo === '4'}
                   onChange={(e) => onChange(e)}
                 />
                 <label htmlFor="logo-four">4</label>
@@ -271,7 +331,7 @@ function Survey() {
               name = 'review'
               cols = '25'
               rows = '12'
-              value = {surveryData.review}
+              value = {surveyData.review}
               onChange = {(e) => onChange(e)}
             ></textarea>
           </label>
@@ -280,7 +340,7 @@ function Survey() {
             <input
               name = 'username'
               type = 'text'
-              value = {surveryData.username}
+              value = {surveyData.username}
               onChange = {(e) => onChange(e)}
             ></input>
           </label>
@@ -289,7 +349,7 @@ function Survey() {
             <input
               name = 'email'
               type = 'text'
-              value = {surveryData.email}
+              value = {surveyData.email}
               onChange = {(e) => onChange(e)}
             ></input>
           </label>
@@ -298,23 +358,9 @@ function Survey() {
       }
       </section>
     </main>
-  );
-}
-
-function Input(id, label, type, value, name, onChange) {
-  return (
-    <label>
-      <input 
-        id = {id}
-        type = {type}
-        value = {value}
-        name = {name}
-        onChange = {onChange}
-      /> 
-      {label}
-    </label>  
   )
 }
 
-export default Survey;
+
+export default Survey
  
